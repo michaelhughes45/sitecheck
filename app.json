@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "SiteCheck",
+    "slug": "sitecheck",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#1E3A5F"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "SiteCheck uses your camera to document inspection findings and incidents.",
+        "NSPhotoLibraryUsageDescription": "SiteCheck lets you attach photos from your library to inspections."
+      }
+    },
+    "android": {
+      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE"]
+    }
+  }
+}
