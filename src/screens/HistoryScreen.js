@@ -2,36 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, SectionList, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { getInspections, getIncidents } from '../storage/db';
-import { TEMPLATES_BY_ID } from '../data/inspectionTemplates';
-
-function summarizeSiteAudit(answers) {
-  const flags = [];
-  if (answers.exterior_condition === 'Needs attention') flags.push('Exterior issue');
-  if (answers.security_check === false) flags.push('Security issue');
-  if (answers.hvac_functioning === false) flags.push('HVAC issue');
-  return flags;
-}
-
-function summarizeFireSafety(answers) {
-  const flags = [];
-  if (answers.extinguishers_present === false) flags.push('Extinguisher issue');
-  if (answers.alarms_tested === false) flags.push('Alarm testing overdue');
-  if (answers.exits_clear === false) flags.push('Exit obstructed');
-  if (answers.sprinkler_system === 'Not operational' || answers.sprinkler_system === 'Partially operational') {
-    flags.push('Sprinkler issue');
-  }
-  return flags;
-}
-
-function summarizeInspection(record) {
-  const flags =
-    record.templateId === 'fire-safety-v1'
-      ? summarizeFireSafety(record.answers)
-      : summarizeSiteAudit(record.answers);
-  const templateTitle = TEMPLATES_BY_ID[record.templateId]?.title;
-  const flagText = flags.length ? flags.join(', ') : 'No issues found';
-  return templateTitle ? `${templateTitle} — ${flagText}` : flagText;
-}
+import { summarizeInspection } from '../data/summarize';
 
 export default function HistoryScreen({ route }) {
   const { property } = route.params;
@@ -70,8 +41,15 @@ export default function HistoryScreen({ route }) {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.date}>{new Date(item.createdAt).toLocaleString()}</Text>
-            <View style={[styles.badge, item.synced ? styles.badgeSynced : styles.badgePending]}>
-              <Text style={styles.badgeText}>{item.synced ? 'Synced' : 'Pending'}</Text>
+            <View
+              style={[
+                styles.badge,
+                item.syncError ? styles.badgeFailed : item.synced ? styles.badgeSynced : styles.badgePending,
+              ]}
+            >
+              <Text style={[styles.badgeText, item.syncError && styles.badgeTextFailed]}>
+                {item.syncError ? 'Sync failed' : item.synced ? 'Synced' : 'Pending'}
+              </Text>
             </View>
           </View>
           <Text style={styles.summary}>
@@ -79,6 +57,7 @@ export default function HistoryScreen({ route }) {
               ? summarizeInspection(item)
               : `${item.answers.category} · ${item.answers.severity}`}
           </Text>
+          {item.syncError && <Text style={styles.syncErrorText}>{item.syncError}</Text>}
         </View>
       )}
       renderSectionFooter={({ section }) =>
@@ -110,6 +89,9 @@ const styles = StyleSheet.create({
   badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   badgeSynced: { backgroundColor: '#E2F1E8' },
   badgePending: { backgroundColor: '#FFF4D6' },
+  badgeFailed: { backgroundColor: '#FBE1E1' },
   badgeText: { fontSize: 11, fontWeight: '700', color: '#3B5A46' },
+  badgeTextFailed: { color: '#8A2C2C' },
+  syncErrorText: { fontSize: 12, color: '#A23B3B', marginTop: 4, fontStyle: 'italic' },
   empty: { fontSize: 13, color: '#8A99A8', fontStyle: 'italic', marginBottom: 8 },
 });

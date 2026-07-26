@@ -96,15 +96,30 @@ site-audit answer keys, so a fire safety record would always have
 misleadingly shown "No issues found" — split into per-template summary
 functions and labeled each entry with its template title.
 
-### Milestone 3 — Real feature depth
-- Replace `fakeUploadToServer` with a real sync target — either a
-  minimal real backend (simple Express endpoint or Firebase) or, at
-  minimum, a realistic mocked API layer with proper request/response
-  shapes and error handling
-- Add one feature that goes beyond FacilIQ's stated feature set, to
-  show initiative — candidates: a cross-property dashboard summarizing
-  flagged issues, or search/filter on the History screen
-- Commit and push
+### Milestone 3 — Real feature depth ✅ Complete
+- [x] Replace `fakeUploadToServer` with a real sync target — chose a
+  realistic mocked API layer (`src/api/client.js`) over standing up a
+  real backend: it simulates request/response JSON shapes, network
+  latency, and two distinct failure modes (a retryable 503 and a
+  non-retryable 400), which forced `sync.js` to actually branch on
+  error type — a real, if small, transient-vs-permanent-failure
+  handling. Retryable failures stay queued and bump an `attempts`
+  count; non-retryable failures are pulled from the queue and the
+  record is flagged with `syncError` instead of retrying forever.
+- [x] Add one feature beyond FacilIQ's stated feature set — added a
+  cross-property `DashboardScreen`, reachable via a header button from
+  Home, showing flagged-issue / pending-sync / sync-failed totals
+  across all properties plus a per-property breakdown that jumps into
+  that property's History.
+- [x] Commit and push
+
+Unplanned follow-on work: the non-retryable failure path (`syncError`)
+had no way to surface in the UI, so it would've been dead state —
+added a "Sync failed" badge and inline error message to
+`HistoryScreen`. While doing that, extracted the inspection
+flag/summary logic out of `HistoryScreen` into a shared
+`src/data/summarize.js` so the new Dashboard could compute the same
+"flagged" counts without duplicating that logic.
 
 ### Milestone 4 — Polish & interview readiness
 - UI polish pass: loading states, empty states, error states

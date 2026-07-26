@@ -49,10 +49,19 @@ export async function getIncidents(propertyId) {
   return propertyId ? list.filter((r) => r.propertyId === propertyId) : list;
 }
 
+function keyForType(type) {
+  return type === 'inspection' ? INSPECTIONS_KEY : INCIDENTS_KEY;
+}
+
+export async function getRecordById(type, recordId) {
+  const list = await readList(keyForType(type));
+  return list.find((r) => r.id === recordId) || null;
+}
+
 // --- Sync queue ----------------------------------------------------------
 // Every record created offline gets a queue entry. When connectivity
-// returns, sync.js drains this queue and (in a real app) POSTs each
-// record to the backend, then removes it from the queue on success.
+// returns, sync.js drains this queue and POSTs each record to the mocked
+// API layer (src/api/client.js), then removes it from the queue on success.
 
 export async function enqueueForSync(entry) {
   const queue = await readList(SYNC_QUEUE_KEY);
@@ -70,9 +79,27 @@ export async function clearSyncQueueEntry(recordId) {
   await writeList(SYNC_QUEUE_KEY, next);
 }
 
+// Bumps the retry count on a queue entry after a retryable failure, so
+// repeated transient errors are visible (and could later drive backoff).
+export async function incrementSyncAttempt(recordId) {
+  const queue = await readList(SYNC_QUEUE_KEY);
+  const next = queue.map((q) =>
+    q.recordId === recordId ? { ...q, attempts: q.attempts + 1 } : q
+  );
+  await writeList(SYNC_QUEUE_KEY, next);
+}
+
 export async function markRecordSynced(type, recordId) {
-  const key = type === 'inspection' ? INSPECTIONS_KEY : INCIDENTS_KEY;
-  const list = await readList(key);
-  const next = list.map((r) => (r.id === recordId ? { ...r, synced: true } : r));
-  await writeList(key, next);
+  const list = await readList(keyForType(type));
+  const next = list.map((r) => (r.id === recordId ? { ...r, synced: true, syncError: null } : r));
+  await writeList(keyForType(type), next);
+}
+
+// Used when the server permanently rejects a record (e.g. validation
+// failure) — it's removed from the retry queue but stays flagged on the
+// record itself instead of silently disappearing.
+export async function markRecordSyncFailed(type, recordId, message) {
+  const list = await readList(keyForType(type));
+  const next = list.map((r) => (r.id === recordId ? { ...r, syncError: message } : r));
+  await writeList(keyForType(type), next);
 }
