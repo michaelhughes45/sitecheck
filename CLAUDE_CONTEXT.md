@@ -55,26 +55,46 @@ Roughly equal-sized chunks of work, one per day. Adjust scope as needed
 if a milestone is running long or short — flag it if so, rather than
 silently over/under-delivering.
 
-### Milestone 1 — Baseline verified & repo live
-- Install dependencies, run the app in Expo Go on a physical device
-- Click through every screen once: Home → Property → Site Audit →
+### Milestone 1 — Baseline verified & repo live ✅ Complete
+- [x] Install dependencies, run the app in Expo Go on a physical device
+- [x] Click through every screen once: Home → Property → Site Audit →
   submit → History; Property → Report Incident → submit → History
-- Confirm data survives an app restart (AsyncStorage persistence)
-- Confirm photo capture works and the retake flow works
-- Toggle airplane mode to confirm the pending-sync banner and badges
+- [x] Confirm data survives an app restart (AsyncStorage persistence)
+- [x] Confirm photo capture works and the retake flow works
+- [x] Toggle airplane mode to confirm the pending-sync banner and badges
   behave correctly, then reconnect and confirm the queue drains
-- Initialize git (if not already) and push the working baseline to
-  GitHub
+- [x] Initialize git (if not already) and push the working baseline to
+  GitHub — pushed to `michaelhughes45/sitecheck`, `main` branch
 
-### Milestone 2 — Extend the form engine
-- Add one new field type to `DynamicForm.js` (e.g. multi-select or a
+Unplanned prerequisite work: the project was scaffolded on Expo SDK 51,
+which `npm audit` flagged with 26 vulnerabilities. Upgraded to SDK 54
+(not the latest, 57 — the App Store/Play Store build of Expo Go is
+still stuck on 54 pending Apple's review of newer builds) before any
+of the above could be verified. Also dropped the unused `expo-camera`
+dependency and migrated `app.json`'s deprecated `splash` key to the
+`expo-splash-screen` config plugin.
+
+### Milestone 2 — Extend the form engine ✅ Complete
+- [x] Add one new field type to `DynamicForm.js` (e.g. multi-select or a
   1–5 rating), proving the engine generalizes beyond the original five
-  types
-- Add one new inspection template (e.g. a fire-safety checklist) that
+  types — added `rating` (1-5 pill buttons)
+- [x] Add one new inspection template (e.g. a fire-safety checklist) that
   uses at least one conditional chain, to demonstrate the template
-  system scales without touching rendering code
-- Add basic required-field validation with inline error states
-- Commit and push
+  system scales without touching rendering code — added
+  `FIRE_SAFETY_TEMPLATE`, with a 3-level conditional chain
+  (`alarms_tested` → `alarm_issue_severity` → `evacuation_confidence`)
+  that also exercises the new `rating` type
+- [x] Add basic required-field validation with inline error states
+- [x] Commit and push
+
+Unplanned follow-on work: the fire safety template wasn't reachable
+from any screen, so `PropertyDetailScreen` and `InspectionFormScreen`
+were reworked to select a template by id (`templateId` route param)
+instead of `InspectionFormScreen` hardcoding the site audit template.
+While doing that, found `HistoryScreen`'s summary line only understood
+site-audit answer keys, so a fire safety record would always have
+misleadingly shown "No issues found" — split into per-template summary
+functions and labeled each entry with its template title.
 
 ### Milestone 3 — Real feature depth
 - Replace `fakeUploadToServer` with a real sync target — either a

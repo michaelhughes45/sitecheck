@@ -2,13 +2,35 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, SectionList, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { getInspections, getIncidents } from '../storage/db';
+import { TEMPLATES_BY_ID } from '../data/inspectionTemplates';
+
+function summarizeSiteAudit(answers) {
+  const flags = [];
+  if (answers.exterior_condition === 'Needs attention') flags.push('Exterior issue');
+  if (answers.security_check === false) flags.push('Security issue');
+  if (answers.hvac_functioning === false) flags.push('HVAC issue');
+  return flags;
+}
+
+function summarizeFireSafety(answers) {
+  const flags = [];
+  if (answers.extinguishers_present === false) flags.push('Extinguisher issue');
+  if (answers.alarms_tested === false) flags.push('Alarm testing overdue');
+  if (answers.exits_clear === false) flags.push('Exit obstructed');
+  if (answers.sprinkler_system === 'Not operational' || answers.sprinkler_system === 'Partially operational') {
+    flags.push('Sprinkler issue');
+  }
+  return flags;
+}
 
 function summarizeInspection(record) {
-  const flags = [];
-  if (record.answers.exterior_condition === 'Needs attention') flags.push('Exterior issue');
-  if (record.answers.security_check === false) flags.push('Security issue');
-  if (record.answers.hvac_functioning === false) flags.push('HVAC issue');
-  return flags.length ? flags.join(', ') : 'No issues found';
+  const flags =
+    record.templateId === 'fire-safety-v1'
+      ? summarizeFireSafety(record.answers)
+      : summarizeSiteAudit(record.answers);
+  const templateTitle = TEMPLATES_BY_ID[record.templateId]?.title;
+  const flagText = flags.length ? flags.join(', ') : 'No issues found';
+  return templateTitle ? `${templateTitle} — ${flagText}` : flagText;
 }
 
 export default function HistoryScreen({ route }) {
@@ -22,7 +44,7 @@ export default function HistoryScreen({ route }) {
         ([inspections, incidents]) => {
           if (!active) return;
           setSections([
-            { title: 'Site Audits', data: inspections, type: 'inspection' },
+            { title: 'Inspections', data: inspections, type: 'inspection' },
             { title: 'Incidents', data: incidents, type: 'incident' },
           ]);
         }

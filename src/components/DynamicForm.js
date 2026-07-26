@@ -12,6 +12,23 @@ function isVisible(question, answers) {
   return answers[questionId] === equals;
 }
 
+// Type-aware "no answer given yet" check, used to validate required fields.
+function isAnswerEmpty(question, value) {
+  switch (question.type) {
+    case 'boolean':
+    case 'rating':
+      return value == null;
+    case 'text':
+      return !value || !value.trim();
+    case 'number':
+      return value === undefined || value === null || value === '';
+    case 'select':
+    case 'photo':
+    default:
+      return !value;
+  }
+}
+
 function BooleanField({ question, value, onChange }) {
   return (
     <View style={styles.row}>
@@ -41,6 +58,22 @@ function SelectField({ question, value, onChange }) {
           onPress={() => onChange(opt)}
         >
           <Text style={[styles.pillText, value === opt && styles.pillTextActive]}>{opt}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function RatingField({ question, value, onChange }) {
+  return (
+    <View style={styles.row}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Pressable
+          key={n}
+          style={[styles.ratingButton, value === n && styles.pillButtonActive]}
+          onPress={() => onChange(n)}
+        >
+          <Text style={[styles.pillText, value === n && styles.pillTextActive]}>{n}</Text>
         </Pressable>
       ))}
     </View>
@@ -105,6 +138,7 @@ const FIELD_COMPONENTS = {
   text: TextField,
   number: NumberField,
   photo: PhotoField,
+  rating: RatingField,
 };
 
 /**
@@ -115,6 +149,7 @@ const FIELD_COMPONENTS = {
  */
 export default function DynamicForm({ template, onSubmit, submitLabel = 'Submit' }) {
   const [answers, setAnswers] = useState({});
+  const [errors, setErrors] = useState({});
 
   const visibleQuestions = useMemo(
     () => template.questions.filter((q) => isVisible(q, answers)),
@@ -142,9 +177,29 @@ export default function DynamicForm({ template, onSubmit, submitLabel = 'Submit'
       }
       return next;
     });
+
+    setErrors((prev) => {
+      if (!(questionId in prev)) return prev;
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
   }, [template.questions]);
 
   const handleSubmit = () => {
+    const newErrors = {};
+    for (const question of visibleQuestions) {
+      if (question.required && isAnswerEmpty(question, answers[question.id])) {
+        newErrors[question.id] = 'This field is required.';
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
     onSubmit(answers);
   };
 
@@ -155,12 +210,18 @@ export default function DynamicForm({ template, onSubmit, submitLabel = 'Submit'
         if (!Field) return null;
         return (
           <View key={question.id} style={styles.questionBlock}>
-            <Text style={styles.label}>{question.label}</Text>
-            <Field
-              question={question}
-              value={answers[question.id]}
-              onChange={(val) => handleChange(question.id, val)}
-            />
+            <Text style={styles.label}>
+              {question.label}
+              {question.required && <Text style={styles.requiredMark}> *</Text>}
+            </Text>
+            <View style={errors[question.id] && styles.fieldErrorBorder}>
+              <Field
+                question={question}
+                value={answers[question.id]}
+                onChange={(val) => handleChange(question.id, val)}
+              />
+            </View>
+            {errors[question.id] && <Text style={styles.errorText}>{errors[question.id]}</Text>}
           </View>
         );
       })}
@@ -176,6 +237,14 @@ const styles = StyleSheet.create({
   container: { padding: 16, paddingBottom: 48 },
   questionBlock: { marginBottom: 20 },
   label: { fontSize: 15, fontWeight: '600', color: '#1E3A5F', marginBottom: 8 },
+  requiredMark: { color: '#B4432D' },
+  fieldErrorBorder: {
+    borderWidth: 1,
+    borderColor: '#B4432D',
+    borderRadius: 10,
+    padding: 4,
+  },
+  errorText: { color: '#B4432D', fontSize: 12, marginTop: 6 },
   row: { flexDirection: 'row', gap: 10 },
   wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   pillButton: {
@@ -187,6 +256,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F8FB',
   },
   pillButtonActive: { backgroundColor: '#1E3A5F', borderColor: '#1E3A5F' },
+  ratingButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#C9D6E3',
+    backgroundColor: '#F5F8FB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pillText: { color: '#1E3A5F', fontWeight: '500' },
   pillTextActive: { color: '#FFFFFF' },
   textInput: {

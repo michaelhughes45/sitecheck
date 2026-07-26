@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { SITE_AUDIT_TEMPLATE, FIRE_SAFETY_TEMPLATE } from '../data/inspectionTemplates';
 
 export default function PropertyDetailScreen({ route, navigation }) {
   const { property } = route.params;
@@ -12,9 +13,16 @@ export default function PropertyDetailScreen({ route, navigation }) {
       <View style={styles.actions}>
         <Pressable
           style={[styles.actionButton, styles.primary]}
-          onPress={() => navigation.navigate('InspectionForm', { property })}
+          onPress={() => navigation.navigate('InspectionForm', { property, templateId: SITE_AUDIT_TEMPLATE.id })}
         >
           <Text style={styles.actionTextPrimary}>Start Site Audit</Text>
+        </Pressable>
+
+        <Pressable
+          style={[styles.actionButton, styles.primary]}
+          onPress={() => navigation.navigate('InspectionForm', { property, templateId: FIRE_SAFETY_TEMPLATE.id })}
+        >
+          <Text style={styles.actionTextPrimary}>Fire Safety Inspection</Text>
         </Pressable>
 
         <Pressable
